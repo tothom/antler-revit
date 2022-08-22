@@ -122,15 +122,15 @@ def string_from_template(element, template_string):
 
 
 def random_numbers(seed, count=1):
-	"""
-	Returns a list of random numbers from given seed. The seed can be anything: numbers, strings, class instances and so on.
-	"""
-	from System import Random
+    """
+    Returns a list of random numbers from given seed. The seed can be anything: numbers, strings, class instances and so on.
+    """
+    from System import Random
 
-	rand = Random(int(hash(seed)))
-	numbers = [rand.NextDouble() for _ in range(count)]
+    rand = Random(int(hash(seed)))
+    numbers = [rand.NextDouble() for _ in range(count)]
 
-	return numbers
+    return numbers
 
 
 # def print_dict_list_as_table(dict_list, title="", formats=[], sort_key=None):
@@ -237,20 +237,37 @@ def print_dict_list(dict_list, title="", sort_key=None, columns=[]):
 
 
 
-def close_revit():
+def close_revit(force_close=False):
     """
-    BTW: Doesn't work. :) WIP
+    A bit dangerous method. Use at own risk! Will not check if Dynamo is open.
     """
     import System.Diagnostics
     import ctypes
 
-    processes = System.Diagnostics.Process.GetCurrentProcess()
+    unsaved_changes = False
 
-    if processes.Length > 0:
-        revit_handle = processes[0].MainWindowHandle
+    for doc in revit.docs:
+        # logger.info(doc.Title)
+        # logger.info(doc.IsModified)
 
-        logger.info(revit_handle)
-    # else:
-    #     return
+        if doc.IsModified:
+            unsaved_changes = True
 
-    WM_CLOSE = 0x10
+    if force_close:
+        pass
+    elif unsaved_changes:
+        logger.warning("Unsaved changes. Revit not closed.")
+        return
+
+    output = script.get_output()
+    output.hide()
+
+    current_process = System.Diagnostics.Process.GetCurrentProcess()
+
+    if current_process:
+        try:
+            current_process.CloseMainWindow()
+            # ctypes.windll.user32.SendMessageW(
+            #     revit_handle,  ctypes.c_int(0x0112), ctypes.c_int(0xF060), 0, 0)
+        except Exception as e:
+            raise e
